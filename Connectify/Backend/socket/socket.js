@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import User from "./models/User"; // Import User model to get user details
 
 let io; // Will hold the instance of socket.io server
 let userSockets = {}; // Store user socket connections
@@ -17,10 +18,12 @@ export const initSocket = (httpServer) => {
   io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    // Store the user's socket ID (can be mapped by user ID in the future)
+    // Register user by their MongoDB _id
     socket.on("registerUser", (userId) => {
       userSockets[userId] = socket.id; // Register user with their socket ID
-      console.log(`User ${userId} registered with socket ID ${socket.id}`);
+      console.log(
+        `User with _id ${userId} registered with socket ID ${socket.id}`
+      );
     });
 
     // Private message event
@@ -35,7 +38,7 @@ export const initSocket = (httpServer) => {
       if (targetSocketId) {
         io.to(targetSocketId).emit("newPrivateMessage", data);
       } else {
-        console.log(`User ${toUserId} is not connected.`);
+        console.log(`User with _id ${toUserId} is not connected.`);
       }
     });
 
@@ -62,7 +65,7 @@ export const initSocket = (httpServer) => {
         if (userSockets[userId] === socket.id) {
           delete userSockets[userId];
           console.log(
-            `User ${userId} disconnected and removed from registered sockets.`
+            `User with _id ${userId} disconnected and removed from registered sockets.`
           );
           break;
         }
@@ -73,14 +76,18 @@ export const initSocket = (httpServer) => {
   return io; // Return io instance in case we need to reference it elsewhere
 };
 
-// Emit notification (this could be called from controllers or other parts of your app)
-export const emitNotification = (userId, message) => {
+// Emit temporary notification (this could be called from controllers or other parts of your app)
+export const emitTemporaryNotification = (userId, message) => {
   if (!io) return; // If socket.io is not initialized yet
 
+  // Send notification to the user identified by userId (_id in the database)
   const targetSocketId = userSockets[userId];
   if (targetSocketId) {
-    io.to(targetSocketId).emit("notification", { userId, message }); // Emit notification to the specific user
+    io.to(targetSocketId).emit("temporaryNotification", { userId, message });
+
+    // Temporary notifications can be auto-removed from the client-side after a certain time
+    // Optionally, you could add a timeout here on the server-side for any cleanup if needed.
   } else {
-    console.log(`User ${userId} is not connected.`);
+    console.log(`User with _id ${userId} is not connected.`);
   }
 };
