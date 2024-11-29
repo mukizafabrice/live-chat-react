@@ -1,25 +1,19 @@
-// components/MessageList.js
-
 import React from "react";
 import Message from "./Message";
 
-const MessageList = ({ messages }) => {
+function MessageList({ messages }) {
   return (
-    <div className="flex flex-col-reverse p-4 space-y-4 message-list">
-      {messages.length > 0 ? (
-        messages.map((message) => (
-          <Message
-            key={message._id}
-            sender={message.sender.username}
-            content={message.content}
-            timestamp={message.timestamp}
-          />
-        ))
-      ) : (
-        <p className="text-center text-gray-500">No messages yet.</p>
-      )}
+    <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
+      {messages.map((msg, index) => (
+        <Message
+          key={index}
+          text={msg.text}
+          user={msg.user}
+          timestamp={msg.timestamp}
+        />
+      ))}
     </div>
   );
-};
+}
 
 export default MessageList;

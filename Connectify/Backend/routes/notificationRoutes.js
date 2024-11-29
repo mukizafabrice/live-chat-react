@@ -1,19 +1,10 @@
 // notificationRoutes.js
-
-import express from "express";
-import {
-  createNotification,
-  getUserNotifications,
-  markNotificationAsRead,
-  deleteNotification,
-} from "../controllers/notificationController.js";
+import express from 'express';
+import { createNotification } from '../controllers/notificationController.js';  // Import the controller
 
 const router = express.Router();
 
-// Define your routes
-router.post("/create", createNotification);
-router.get("/:userId", getUserNotifications);
-router.put("/:notificationId/mark-read", markNotificationAsRead);
-router.delete("/:notificationId", deleteNotification);
+// Define the route for creating notifications
+router.post('/create', createNotification);
 
 export default router;

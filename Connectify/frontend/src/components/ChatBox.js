@@ -1,47 +1,38 @@
-// components/ChatBox.js
-
 import React, { useState } from "react";
+import { io } from "socket.io-client";
 
-const ChatBox = ({ onSendGroupMessage, onSendPrivateMessage, currentRoom }) => {
+function ChatBox() {
   const [message, setMessage] = useState("");
-  const [recipientId, setRecipientId] = useState(""); // For private messages
+  const socket = io("http://localhost:5001"); // Replace with your backend server URL
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (currentRoom === "private" && recipientId && message) {
-      onSendPrivateMessage(recipientId, message);
-    } else if (currentRoom === "general" && message) {
-      onSendGroupMessage(message);
+  const sendMessage = () => {
+    if (message.trim()) {
+      socket.emit("message", {
+        text: message,
+        user: "User1", // Replace with dynamic username
+        timestamp: new Date().toISOString(),
+      });
+      setMessage(""); // Clear input after sending
     }
-
-    setMessage(""); // Clear the message input after sending
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex space-x-2">
-      {currentRoom === "private" && (
-        <input
-          type="text"
-          placeholder="Recipient ID"
-          value={recipientId}
-          onChange={(e) => setRecipientId(e.target.value)}
-          className="p-2 text-black bg-white rounded"
-        />
-      )}
-
+    <div className="flex items-center p-4 bg-white border-t">
       <input
         type="text"
-        placeholder="Type a message..."
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        className="flex-grow p-2 text-black bg-white rounded"
+        placeholder="Type a message..."
+        className="flex-grow px-4 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-      <button type="submit" className="p-2 text-white bg-blue-600 rounded">
+      <button
+        onClick={sendMessage}
+        className="px-4 py-2 ml-4 text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+      >
         Send
       </button>
-    </form>
+    </div>
   );
-};
+}
 
 export default ChatBox;

@@ -1,89 +1,99 @@
-// components/Chat.js
-
 import React, { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-import MessageList from "../components/MessageList"; // Import the MessageList component
-import ChatBox from "../components/ChatBox";  // Adjust based on the actual location of ChatBox
+import io from "socket.io-client";
 
+const socket = io("http://localhost:5001"); // Replace with your server URL
 
-const socket = io("http://localhost:5001"); // Assuming your backend runs on port 5000
-
-const Chat = () => {
+function Chat() {
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [currentRoom, setCurrentRoom] = useState("general"); // Default room to "general"
+  const [selectedUser, setSelectedUser] = useState("");
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    // Listen for messages from the server (both private and group messages)
-    socket.on("receive_message", (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
+    // Listen for new public messages
+    socket.on("new_message", (data) => {
+      setMessages((prevMessages) => [...prevMessages, data]);
     });
 
-    // Clean up on component unmount
+    // Listen for private messages
+    socket.on("newMessage", (data) => {
+      setMessages((prevMessages) => [...prevMessages, data]);
+    });
+
+    // Fetch users from the backend (you might need an API endpoint for this)
+    // For example, you can hard-code users for now.
+    setUsers(["user1", "user2", "user3"]);
+
     return () => {
-      socket.off("receive_message");
+      socket.off("new_message");
+      socket.off("newMessage");
     };
   }, []);
 
-  // Function to handle private message sending
-  const sendPrivateMessage = (recipientId, content) => {
-    const message = {
-      type: "private",
-      recipientId,
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    socket.emit("send_private_message", message);
-    setMessages((prevMessages) => [...prevMessages, message]);
-  };
-
-  // Function to handle group message sending
-  const sendGroupMessage = (content) => {
-    const message = {
-      type: "group",
-      room: currentRoom, // Room is determined by the current active chat
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    socket.emit("send_group_message", message);
-    setMessages((prevMessages) => [...prevMessages, message]);
+  const handleSendMessage = () => {
+    if (selectedUser) {
+      // Send private message
+      socket.emit("sendPrivateMessage", {
+        toUserId: selectedUser,
+        message,
+      });
+      setMessage("");
+    } else {
+      // Send public message
+      socket.emit("send_message", { message });
+      setMessage("");
+    }
   };
 
   return (
-    <div className="flex flex-col h-full chat-container">
-      {/* Room/Private chat selection */}
-      <div className="flex items-center justify-between p-4 text-white bg-blue-600">
-        <h2 className="text-xl font-bold">Connectify Chat</h2>
-        <div className="flex space-x-4">
-          <button
-            onClick={() => setCurrentRoom("general")}
-            className={`px-4 py-2 rounded ${currentRoom === "general" ? "bg-gray-400" : "bg-gray-600"}`}
-          >
-            General Room
-          </button>
-          <button
-            onClick={() => setCurrentRoom("private")}
-            className={`px-4 py-2 rounded ${currentRoom === "private" ? "bg-gray-400" : "bg-gray-600"}`}
-          >
-            Private Chat
-          </button>
-        </div>
+    <div className="p-4 pt-12 mt-20">
+      <h2>Chat</h2>
+
+      {/* User Selection */}
+      <div className="mb-4">
+        <label>Select User to Chat with: </label>
+        <select
+          onChange={(e) => setSelectedUser(e.target.value)}
+          value={selectedUser}
+          className="p-2 border"
+        >
+          <option value="">Select User</option>
+          {users.map((user) => (
+            <option key={user} value={user}>
+              {user}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* Message List */}
-      <div className="flex-grow p-4 overflow-auto">
-        <MessageList messages={messages} />
+      {/* Messages */}
+      <div className="h-64 p-2 mb-4 overflow-auto bg-gray-100 border">
+        {messages.map((msg, index) => (
+          <p key={index}>
+            <strong>{msg.from || "System"}: </strong>
+            {msg.message}
+          </p>
+        ))}
       </div>
 
-      {/* Chat Input Area */}
-      <div className="p-4 bg-gray-200">
-        <ChatBox
-          onSendGroupMessage={sendGroupMessage}
-          onSendPrivateMessage={sendPrivateMessage}
-          currentRoom={currentRoom}
+      {/* Message Input */}
+      <div className="mb-4">
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows="3"
+          className="w-full p-2 border"
         />
       </div>
+
+      <button
+        onClick={handleSendMessage}
+        className="p-2 text-white bg-blue-500 rounded"
+      >
+        Send Message
+      </button>
     </div>
   );
-};
+}
 
 export default Chat;

@@ -37,19 +37,24 @@ function App() {
 
     try {
       const response = await axios.post(apiUrl, formData);
-      // Handle success here (e.g., storing token, redirecting, etc.)
-      console.log("Response:", response.data);
+
       setLoading(false);
       if (isSignUp) {
         alert("Registration successful!");
         setFormData({ email: "", password: "" });
       } else {
         alert("Login successful!");
-        // Store token (e.g., in localStorage or sessionStorage)
+
+        // Ensure the token is set in localStorage
         localStorage.setItem("token", response.data.token);
 
-        // Redirect to home page upon successful login
-        navigate("/home"); // Redirect to the home page
+        // Debug the token storage to check if it's correctly set
+        console.log("Token stored:", localStorage.getItem("token"));
+
+        // Delay navigate to allow token to be set
+        setTimeout(() => {
+          navigate("/home");
+        }, 500); // Add a slight delay before navigating
       }
     } catch (error) {
       setLoading(false);
@@ -91,6 +96,7 @@ function App() {
                   onChange={handleInputChange}
                   placeholder="Password"
                   className="w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  autocomplete="current-password" // Added autocomplete attribute
                 />
               </div>
               {error && <p className="text-red-600">{error}</p>}

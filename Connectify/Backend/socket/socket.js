@@ -1,93 +1,66 @@
 import { Server } from "socket.io";
-import User from "./models/User"; // Import User model to get user details
 
-let io; // Will hold the instance of socket.io server
-let userSockets = {}; // Store user socket connections
+// Store user sockets by their userId (or any unique identifier)
+let userSockets = {};
 
-// Setup socket.io
 export const initSocket = (httpServer) => {
-  // Initialize the Socket.IO server with the HTTP server instance
-  io = new Server(httpServer, {
+  const io = new Server(httpServer, {
     cors: {
-      origin: "*", // You can modify this to limit which domains can connect
+      origin: "*", // Adjust as needed (e.g., your frontend URL in production)
       methods: ["GET", "POST"],
     },
   });
 
-  // Connection event
   io.on("connection", (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    // Register user by their MongoDB _id
+    // Register user with their userId
     socket.on("registerUser", (userId) => {
-      userSockets[userId] = socket.id; // Register user with their socket ID
-      console.log(
-        `User with _id ${userId} registered with socket ID ${socket.id}`
-      );
+      userSockets[userId] = socket.id;
+      console.log(`User registered: ${userId} with socket ID: ${socket.id}`);
     });
 
-    // Private message event
-    socket.on("sendPrivateMessage", (data) => {
-      const { toUserId, message } = data;
-      console.log(
-        `Private message from ${data.fromUserId} to ${toUserId}: ${message}`
-      );
+    // Handle public messages
+    socket.on("send_message", (data) => {
+      io.emit("new_message", data); // Broadcast to all connected clients
+      console.log(`Public message: ${data.message}`);
+    });
 
-      // Emit the message to the specific user (private chat)
-      const targetSocketId = userSockets[toUserId];
-      if (targetSocketId) {
-        io.to(targetSocketId).emit("newPrivateMessage", data);
+    // Handle private messages
+    socket.on("sendPrivateMessage", ({ toUserId, message }) => {
+      const toSocketId = userSockets[toUserId];
+      if (toSocketId) {
+        io.to(toSocketId).emit("newMessage", { from: socket.id, message });
+        console.log(`Private message sent to user ${toUserId}: ${message}`);
       } else {
-        console.log(`User with _id ${toUserId} is not connected.`);
+        console.log(`User ${toUserId} is not connected.`);
       }
     });
 
-    // Group chat event
-    socket.on("joinGroup", (groupId) => {
-      socket.join(groupId); // Join a group (room)
-      console.log(`User ${socket.id} joined group ${groupId}`);
+    // Handle notifications
+    socket.on("sendNotification", ({ userId, message }) => {
+      const toSocketId = userSockets[userId];
+      if (toSocketId) {
+        io.to(toSocketId).emit("newNotification", { message });
+        console.log(`Notification sent to user ${userId}: ${message}`);
+      } else {
+        console.log(`User ${userId} is not connected.`);
+      }
     });
 
-    socket.on("sendGroupMessage", (data) => {
-      const { groupId, message } = data;
-      console.log(`Group message to group ${groupId}: ${message}`);
-
-      // Emit the message to all users in the group
-      io.to(groupId).emit("newGroupMessage", data);
-    });
-
-    // Disconnect event
+    // Handle user disconnection
     socket.on("disconnect", () => {
-      console.log(`User disconnected: ${socket.id}`);
-
-      // Clean up user socket from the userSockets map
+      // Find and remove the disconnected user from the `userSockets` map
       for (const userId in userSockets) {
         if (userSockets[userId] === socket.id) {
           delete userSockets[userId];
-          console.log(
-            `User with _id ${userId} disconnected and removed from registered sockets.`
-          );
+          console.log(`User ${userId} disconnected.`);
           break;
         }
       }
     });
   });
+  
 
-  return io; // Return io instance in case we need to reference it elsewhere
-};
-
-// Emit temporary notification (this could be called from controllers or other parts of your app)
-export const emitTemporaryNotification = (userId, message) => {
-  if (!io) return; // If socket.io is not initialized yet
-
-  // Send notification to the user identified by userId (_id in the database)
-  const targetSocketId = userSockets[userId];
-  if (targetSocketId) {
-    io.to(targetSocketId).emit("temporaryNotification", { userId, message });
-
-    // Temporary notifications can be auto-removed from the client-side after a certain time
-    // Optionally, you could add a timeout here on the server-side for any cleanup if needed.
-  } else {
-    console.log(`User with _id ${userId} is not connected.`);
-  }
+  return io; // Export the socket.io instance for further use if necessary
 };

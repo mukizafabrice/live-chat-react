@@ -1,4 +1,3 @@
-// messageModel.js
 import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema({
@@ -12,6 +11,4 @@ const messageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-const Message = mongoose.model("Message", messageSchema);
-
-export default Message;
+export default mongoose.model("Message", messageSchema);

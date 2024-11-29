@@ -8,13 +8,13 @@ import notificationRoutes from "./routes/notificationRoutes.js"; // Notification
 import session from "express-session";
 import passport from "passport";
 import { initializePassport } from "./config/passport.js";
+import { initSocket } from "./socket/socket.js";
+import http from "http"; // Import the HTTP module
 
-// If you have passport for JWT/Session auth
-
-// Loading environment variables
+// Load environment variables
 dotenv.config();
 
-// Initializing Express app
+// Initialize Express app
 const app = express();
 
 // Middleware setup
@@ -58,8 +58,12 @@ app.get("/", (req, res) => {
   res.send("Server is running");
 });
 
-// Starting the server
+// Create HTTP server and integrate with socket.io
+const server = http.createServer(app); // Create the HTTP server using Express app
+initSocket(server); // Pass the server instance to socket.io initialization
+
+// Start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
