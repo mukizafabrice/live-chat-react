@@ -6,7 +6,7 @@ let userSockets = {};
 export const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: "*", // Adjust as needed (e.g., your frontend URL in production)
+      origin: "*",
       methods: ["GET", "POST"],
     },
   });
@@ -20,9 +20,8 @@ export const initSocket = (httpServer) => {
       console.log(`User registered: ${userId} with socket ID: ${socket.id}`);
     });
 
-    // Handle public messages
     socket.on("send_message", (data) => {
-      io.emit("new_message", data); // Broadcast to all connected clients
+      io.emit("new_message", data);
       console.log(`Public message: ${data.message}`);
     });
 
@@ -60,7 +59,6 @@ export const initSocket = (httpServer) => {
       }
     });
   });
-  
 
   return io; // Export the socket.io instance for further use if necessary
 };
